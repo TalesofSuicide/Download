@@ -1,6 +1,7 @@
 from flask import Flask, render_template_string, request, send_file
 import yt_dlp
 import os
+import tempfile
 
 app = Flask(__name__)
 
@@ -97,8 +98,8 @@ def download():
         return 'URL is required', 400
 
     try:
-        # Create a temporary file path
-        output_file = 'downloaded_video.mp4'
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_file:
+            output_file = temp_file.name
 
         ydl_opts = {
             'format': 'bestaudio/best',
@@ -109,14 +110,13 @@ def download():
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
 
-        # Serve the file
         if os.path.exists(output_file):
             return send_file(output_file, as_attachment=True, attachment_filename='downloaded_video.mp4', mimetype='video/mp4')
         else:
             return 'File not found', 404
 
     except Exception as e:
-        return str(e), 500
+        return f'Error: {str(e)}', 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
