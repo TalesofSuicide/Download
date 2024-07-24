@@ -8,6 +8,9 @@ app = Flask(__name__)
 @app.route('/')
 def index():
     return render_template_string('''
+    <head>
+        <link rel="icon" href="https://media.discordapp.net/attachments/1092931340095213599/1265653526709669989/Kurumi.png?ex=66a24b33&is=66a0f9b3&hm=f219cc590615149bc12a89a5c1365d15cd8d427ab03f0517c6cfef69f6bd7feb&=&format=webp&quality=lossless" type="image/png">
+    </head>
     <style>
         body {
             background-image: url('https://imgs.search.brave.com/BHyziE80tXpw8mYUQKtJ0NEL_hLWWkg5DKKFk6-tUvo/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pLnBp/bmltZy5jb20vb3Jp/Z2luYWxzL2YzLzQ4/LzNmL2YzNDgzZjkw/ZDdlMDIxODEwMDFk/OGE2MTY2ZmI5Nzk2/LmpwZw');
@@ -35,6 +38,11 @@ def index():
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            background-image: url('https://media.discordapp.net/attachments/1092931340095213599/1265653526709669989/Kurumi.png?ex=66a24b33&is=66a0f9b3&hm=f219cc590615149bc12a89a5c1365d15cd8d427ab03f0517c6cfef69f6bd7feb&=&format=webp&quality=lossless');
+            background-size: 24px 24px;
+            background-repeat: no-repeat;
+            background-position: right center;
+            padding-right: 40px;
         }
         #progress-container {
             margin-top: 20px;
@@ -90,7 +98,7 @@ def index():
                 if (xhr.status === 200) {
                     var link = document.createElement('a');
                     link.href = URL.createObjectURL(xhr.response);
-                    link.download = 'downloaded_video.mp4';
+                    link.download = 'Kurumi\'sVideo.mp4';
                     link.click();
                     document.getElementById('progress-container').style.display = 'none';
                 }
@@ -130,7 +138,7 @@ def download():
         if d['status'] == 'finished':
             # Serve the file after download is complete
             with open(file_path, 'rb') as f:
-                return send_file(f, as_attachment=True)
+                return send_file(f, as_attachment=True, attachment_filename='Kurumi\'sVideo.mp4')
 
     thread = Thread(target=download_video)
     thread.start()
