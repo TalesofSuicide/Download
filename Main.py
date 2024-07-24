@@ -33,16 +33,11 @@ def index():
         }
         button {
             padding: 10px 20px;
-            background-color: #007BFF;
+            background-color: #FF0000; /* Red Color */
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            background-image: url('https://media.discordapp.net/attachments/1092931340095213599/1265653526709669989/Kurumi.png?ex=66a24b33&is=66a0f9b3&hm=f219cc590615149bc12a89a5c1365d15cd8d427ab03f0517c6cfef69f6bd7feb&=&format=webp&quality=lossless');
-            background-size: 24px 24px;
-            background-repeat: no-repeat;
-            background-position: right center;
-            padding-right: 40px;
         }
         #progress-container {
             margin-top: 20px;
