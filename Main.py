@@ -1,6 +1,7 @@
-from flask import Flask, render_template_string, request, jsonify, send_file
+from flask import Flask, render_template_string, request, send_file
 import yt_dlp
 import os
+from threading import Thread
 
 app = Flask(__name__)
 
@@ -67,11 +68,14 @@ def index():
             var xhr = new XMLHttpRequest();
             xhr.open('POST', '/download', true);
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.responseType = 'blob';
             xhr.onload = function() {
                 if (xhr.status === 200) {
-                    window.location.href = '/serve_file';
-                } else {
-                    alert('Error downloading file');
+                    var link = document.createElement('a');
+                    link.href = URL.createObjectURL(xhr.response);
+                    link.download = 'downloaded_video.mp4';
+                    link.click();
+                    document.getElementById('progress-container').style.display = 'none';
                 }
             };
             xhr.upload.onprogress = function(event) {
@@ -90,43 +94,25 @@ def index():
 @app.route('/download', methods=['POST'])
 def download():
     url = request.form['url']
-    temp_path = '/tmp/downloaded_video.mp4'
+    file_path = '/tmp/downloaded_video.mp4'
+
+    def download_video():
+        ydl_opts = {
+            'format': 'bestvideo+bestaudio/best',
+            'outtmpl': file_path,
+            'progress_hooks': [hook],
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
 
     def hook(d):
         if d['status'] == 'finished':
-            print(f"Done downloading {d['filename']}")
+            with open(file_path, 'rb') as f:
+                send_file(f, as_attachment=True)
 
-    try:
-        ydl_opts = {
-            'format': 'bestvideo+bestaudio/best',
-            'outtmpl': temp_path,
-            'noplaylist': True,
-            'merge_output_format': 'mp4',
-            'progress_hooks': [hook],
-            'postprocessors': [{
-                'key': 'FFmpegVideoConvertor',
-                'preferedformat': 'mp4',
-            }],
-        }
-        
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
-        
-        if os.path.exists(temp_path):
-            return jsonify({'url': '/serve_file'})
-        else:
-            return jsonify({'error': 'File not found after download'}), 404
-    
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/serve_file')
-def serve_file():
-    file_path = '/tmp/downloaded_video.mp4'
-    if os.path.exists(file_path):
-        return send_file(file_path, as_attachment=True, attachment_filename='downloaded_video.mp4')
-    else:
-        return jsonify({'error': 'File not found'}), 404
+    thread = Thread(target=download_video)
+    thread.start()
+    return 'Downloading video...'
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
