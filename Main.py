@@ -1,4 +1,4 @@
-from flask import Flask, render_template_string, request, send_file, jsonify
+from flask import Flask, render_template_string, request, jsonify, send_file
 import yt_dlp
 import os
 
@@ -67,17 +67,11 @@ def index():
             var xhr = new XMLHttpRequest();
             xhr.open('POST', '/download', true);
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-            xhr.responseType = 'json';
             xhr.onload = function() {
                 if (xhr.status === 200) {
-                    var downloadUrl = xhr.response.url;
-                    var link = document.createElement('a');
-                    link.href = downloadUrl;
-                    link.download = 'downloaded_video.mp4';
-                    link.click();
-                    document.getElementById('progress-container').style.display = 'none';
+                    window.location.href = '/serve_file';
                 } else {
-                    alert('Error downloading file: ' + xhr.response.error);
+                    alert('Error downloading file');
                 }
             };
             xhr.upload.onprogress = function(event) {
@@ -109,6 +103,10 @@ def download():
             'noplaylist': True,
             'merge_output_format': 'mp4',
             'progress_hooks': [hook],
+            'postprocessors': [{
+                'key': 'FFmpegVideoConvertor',
+                'preferedformat': 'mp4',
+            }],
         }
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -125,9 +123,10 @@ def download():
 @app.route('/serve_file')
 def serve_file():
     file_path = '/tmp/downloaded_video.mp4'
-    if not os.path.exists(file_path):
-        return 'File not found', 404
-    return send_file(file_path, as_attachment=True, attachment_filename='downloaded_video.mp4', mimetype='video/mp4')
+    if os.path.exists(file_path):
+        return send_file(file_path, as_attachment=True, attachment_filename='downloaded_video.mp4')
+    else:
+        return jsonify({'error': 'File not found'}), 404
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
