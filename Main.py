@@ -52,24 +52,28 @@ def index():
             margin-top: 10px;
             font-weight: bold;
         }
-        .info-text {
-            font-size: 16px;
-            margin-bottom: 20px;
+        .info {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-size: 14px;
         }
     </style>
-    <div class="info-text">
-        <p>Acceptable links:</p>
-        <ul>
-            <li>YouTube URLs (e.g., https://www.youtube.com/watch?v=dQw4w9WgXcQ)</li>
-            <li>Instagram URLs (e.g., https://www.instagram.com/p/your-post-id/)</li>
-            <li>TikTok URLs (e.g., https://www.tiktok.com/@username/video/your-video-id)</li>
-            <li>Twitter URLs (e.g., https://twitter.com/username/status/your-tweet-id)</li>
-        </ul>
-    </div>
     <form id="download-form">
-        <input type="text" id="url" name="url" placeholder="Enter URL" required>
+        <input type="text" id="url" name="url" placeholder="Enter video URL" required>
         <button type="submit">Download</button>
     </form>
+    <div class="info">
+        <p><strong>Accepted Video Links:</strong></p>
+        <ul>
+            <li>YouTube</li>
+            <li>Instagram</li>
+            <li>TikTok</li>
+            <li>Twitter</li>
+        </ul>
+        <p>Please ensure that the video URL is directly accessible and valid.</p>
+    </div>
     <div id="progress-container" style="display:none;">
         <div id="progress-bar">0%</div>
         <div id="status-message"></div>
@@ -86,11 +90,9 @@ def index():
                 if (xhr.status === 200) {
                     var link = document.createElement('a');
                     link.href = URL.createObjectURL(xhr.response);
-                    link.download = 'Kurumi\'sVideo.mp4';
+                    link.download = 'downloaded_video.mp4';
                     link.click();
                     document.getElementById('progress-container').style.display = 'none';
-                } else {
-                    document.getElementById('status-message').textContent = 'Failed to download video. Please check the URL.';
                 }
             };
             xhr.upload.onprogress = function(event) {
@@ -109,36 +111,30 @@ def index():
 @app.route('/download', methods=['POST'])
 def download():
     url = request.form['url']
-    file_path = '/tmp/Kurumi\'sVideo.mp4'
+    file_path = '/tmp/downloaded_video.mp4'
 
     def download_video():
         ydl_opts = {
             'format': 'bestvideo+bestaudio/best',
-            'outtmpl': file_path,
-            'noplaylist': True,  # Avoid downloading playlists
+            'outtmpl': '/tmp/downloaded_video.%(ext)s',
+            'postprocessors': [{
+                'key': 'FFmpegVideoConvertor',
+                'preferedformat': 'mp4',
+            }],
             'progress_hooks': [hook],
         }
-        try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                ydl.download([url])
-        except Exception as e:
-            print(f"Error during download: {e}")
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
 
     def hook(d):
         if d['status'] == 'finished':
-            print("Download finished, sending file.")
-    
-    # Create a separate thread for the download
+            # Serve the file after download is complete
+            with open(file_path, 'rb') as f:
+                return send_file(f, as_attachment=True)
+
     thread = Thread(target=download_video)
     thread.start()
-    
-    # Wait for the download to complete
-    thread.join()
-
-    if os.path.exists(file_path):
-        return send_file(file_path, as_attachment=True, attachment_filename="Kurumi'sVideo.mp4")
-    else:
-        return 'Error: File not found.', 404
+    return 'Downloading video...'
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
