@@ -54,7 +54,7 @@ def index():
         }
     </style>
     <form id="download-form">
-        <input type="text" id="url" name="url" placeholder="Enter YouTube URL" required>
+        <input type="text" id="url" name="url" placeholder="Enter video URL" required>
         <button type="submit">Download</button>
     </form>
     <div id="progress-container" style="display:none;">
@@ -99,7 +99,11 @@ def download():
     def download_video():
         ydl_opts = {
             'format': 'bestvideo+bestaudio/best',
-            'outtmpl': file_path,
+            'outtmpl': '/tmp/downloaded_video.%(ext)s',
+            'postprocessors': [{
+                'key': 'FFmpegVideoConvertor',
+                'preferedformat': 'mp4',
+            }],
             'progress_hooks': [hook],
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -107,8 +111,9 @@ def download():
 
     def hook(d):
         if d['status'] == 'finished':
+            # Serve the file after download is complete
             with open(file_path, 'rb') as f:
-                send_file(f, as_attachment=True)
+                return send_file(f, as_attachment=True)
 
     thread = Thread(target=download_video)
     thread.start()
