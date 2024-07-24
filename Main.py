@@ -1,7 +1,8 @@
-from flask import Flask, render_template_string, request, send_file
+from flask import Flask, render_template_string, request, send_file, jsonify
 import yt_dlp
 import os
 from threading import Thread
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
@@ -68,14 +69,19 @@ def index():
             var xhr = new XMLHttpRequest();
             xhr.open('POST', '/download', true);
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-            xhr.responseType = 'blob';
+            xhr.responseType = 'json';
             xhr.onload = function() {
                 if (xhr.status === 200) {
+                    var downloadUrl = xhr.response.url;
                     var link = document.createElement('a');
-                    link.href = URL.createObjectURL(xhr.response);
+                    link.href = downloadUrl;
                     link.download = 'downloaded_video.mp4';
+                    document.body.appendChild(link);
                     link.click();
+                    document.body.removeChild(link);
                     document.getElementById('progress-container').style.display = 'none';
+                } else {
+                    alert('Error downloading file: ' + xhr.statusText);
                 }
             };
             xhr.upload.onprogress = function(event) {
@@ -107,12 +113,18 @@ def download():
 
     def hook(d):
         if d['status'] == 'finished':
-            with open(file_path, 'rb') as f:
-                send_file(f, as_attachment=True)
+            print("Download finished")
+            # Here, you would save the file or prepare it for sending.
+            # Use a shared variable or some other method to let the main thread know the file is ready.
 
     thread = Thread(target=download_video)
     thread.start()
-    return 'Downloading video...'
+    # Use a response with a placeholder URL that will be replaced once the download is complete
+    return jsonify({'url': '/complete'})
+
+@app.route('/complete', methods=['GET'])
+def complete():
+    return send_file('/tmp/downloaded_video.mp4', as_attachment=True, attachment_filename='downloaded_video.mp4', mimetype='video/mp4')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
