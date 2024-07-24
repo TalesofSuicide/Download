@@ -45,16 +45,22 @@ def index():
 @app.route('/download', methods=['POST'])
 def download():
     url = request.form['url']
+    print(f"Received URL: {url}")  # Debugging print
     ydl_opts = {
         'outtmpl': 'downloaded_video.%(ext)s',
         'format': 'best'
     }
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info_dict = ydl.extract_info(url, download=True)
-        video_file = ydl.prepare_filename(info_dict)
-
-    return send_file(video_file, as_attachment=True)
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(url, download=True)
+            print(f"Video info: {info_dict}")  # Debugging print
+            video_file = ydl.prepare_filename(info_dict)
+            print(f"Video file path: {video_file}")  # Debugging print
+        return send_file(video_file, as_attachment=True)
+    except Exception as e:
+        print(f"Error during download: {e}")  # Debugging print
+        return f"An error occurred: {e}"
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
