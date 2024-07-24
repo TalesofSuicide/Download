@@ -96,28 +96,21 @@ def index():
 @app.route('/download', methods=['POST'])
 def download():
     url = request.form['url']
-    temp_path = '/tmp/downloaded_video'
-    temp_file = temp_path + '.temp.mp4'
+    temp_path = '/tmp/downloaded_video.mp4'
 
     try:
         ydl_opts = {
             'format': 'bestvideo+bestaudio/best',
-            'outtmpl': temp_file,
-            'merge_output_format': 'mp4',  # Ensure merging to MP4
+            'outtmpl': temp_path,
+            'merge_output_format': 'mp4',  # Ensure output format is MP4
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
         
-        final_file = temp_path + '.mp4'
-        if os.path.exists(temp_file):
-            os.rename(temp_file, final_file)
-        else:
-            return jsonify({'error': 'File not found after download'}), 404
-
-        if os.path.exists(final_file):
+        if os.path.exists(temp_path):
             return jsonify({'url': '/serve_file'})
         else:
-            return jsonify({'error': 'File not found'}), 404
+            return jsonify({'error': 'File not found after download'}), 404
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
