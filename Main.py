@@ -115,8 +115,8 @@ def download():
         ydl_opts = {
             'format': 'bestvideo+bestaudio/best',
             'outtmpl': file_path,
-            'progress_hooks': [hook],
             'noplaylist': True,  # Avoid downloading playlists
+            'progress_hooks': [hook],
         }
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
