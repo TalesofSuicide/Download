@@ -1,7 +1,6 @@
 from flask import Flask, render_template_string, request, send_file
 import yt_dlp
 import os
-from io import BytesIO
 
 app = Flask(__name__)
 
@@ -98,18 +97,24 @@ def download():
         return 'URL is required', 400
 
     try:
+        # Create a temporary file path
+        output_file = 'downloaded_video.mp4'
+
         ydl_opts = {
             'format': 'bestaudio/best',
-            'outtmpl': '%(id)s.%(ext)s',
+            'outtmpl': output_file,
             'quiet': True,
         }
+
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info_dict = ydl.extract_info(url, download=False)
-            audio_url = info_dict['formats'][0]['url']
-            file = BytesIO()
             ydl.download([url])
-            file.name = 'downloaded_video.mp4'
-            return send_file(file, as_attachment=True, attachment_filename='downloaded_video.mp4', mimetype='video/mp4')
+
+        # Serve the file
+        if os.path.exists(output_file):
+            return send_file(output_file, as_attachment=True, attachment_filename='downloaded_video.mp4', mimetype='video/mp4')
+        else:
+            return 'File not found', 404
+
     except Exception as e:
         return str(e), 500
 
