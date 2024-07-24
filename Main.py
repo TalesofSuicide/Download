@@ -52,11 +52,28 @@ def index():
             margin-top: 10px;
             font-weight: bold;
         }
+        .info {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-size: 14px;
+        }
     </style>
     <form id="download-form">
         <input type="text" id="url" name="url" placeholder="Enter video URL" required>
         <button type="submit">Download</button>
     </form>
+    <div class="info">
+        <p><strong>Accepted Video Links:</strong></p>
+        <ul>
+            <li>YouTube</li>
+            <li>Instagram</li>
+            <li>TikTok</li>
+            <li>Twitter</li>
+        </ul>
+        <p>Please ensure that the video URL is directly accessible and valid.</p>
+    </div>
     <div id="progress-container" style="display:none;">
         <div id="progress-bar">0%</div>
         <div id="status-message"></div>
