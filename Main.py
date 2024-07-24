@@ -1,7 +1,7 @@
 from flask import Flask, render_template_string, request, send_file
 import yt_dlp
 import os
-from threading import Thread
+from io import BytesIO
 
 app = Flask(__name__)
 
@@ -30,7 +30,7 @@ def index():
         }
         button {
             padding: 10px 20px;
-            background-color: #007BFF;
+            background-color: #d00000;
             color: white;
             border: none;
             border-radius: 5px;
@@ -42,15 +42,11 @@ def index():
         #progress-bar {
             width: 0;
             height: 30px;
-            background-color: #8B0000; /* Dark Red Color */
+            background-color: #d00000;
             text-align: center;
             line-height: 30px;
             color: white;
             border-radius: 5px;
-        }
-        #status-message {
-            margin-top: 10px;
-            font-weight: bold;
         }
     </style>
     <form id="download-form">
@@ -59,7 +55,6 @@ def index():
     </form>
     <div id="progress-container" style="display:none;">
         <div id="progress-bar">0%</div>
-        <div id="status-message"></div>
     </div>
     <script>
         document.getElementById('download-form').onsubmit = function(event) {
@@ -74,8 +69,13 @@ def index():
                     var link = document.createElement('a');
                     link.href = URL.createObjectURL(xhr.response);
                     link.download = 'downloaded_video.mp4';
+                    document.body.appendChild(link);
                     link.click();
+                    document.body.removeChild(link);
                     document.getElementById('progress-container').style.display = 'none';
+                    alert('Download complete!');
+                } else {
+                    alert('Error downloading file');
                 }
             };
             xhr.upload.onprogress = function(event) {
@@ -93,26 +93,25 @@ def index():
 
 @app.route('/download', methods=['POST'])
 def download():
-    url = request.form['url']
-    file_path = '/tmp/downloaded_video.mp4'
+    url = request.form.get('url')
+    if not url:
+        return 'URL is required', 400
 
-    def download_video():
+    try:
         ydl_opts = {
-            'format': 'bestvideo+bestaudio/best',
-            'outtmpl': file_path,
-            'progress_hooks': [hook],
+            'format': 'bestaudio/best',
+            'outtmpl': '%(id)s.%(ext)s',
+            'quiet': True,
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(url, download=False)
+            audio_url = info_dict['formats'][0]['url']
+            file = BytesIO()
             ydl.download([url])
-
-    def hook(d):
-        if d['status'] == 'finished':
-            with open(file_path, 'rb') as f:
-                send_file(f, as_attachment=True)
-
-    thread = Thread(target=download_video)
-    thread.start()
-    return 'Downloading video...'
+            file.name = 'downloaded_video.mp4'
+            return send_file(file, as_attachment=True, attachment_filename='downloaded_video.mp4', mimetype='video/mp4')
+    except Exception as e:
+        return str(e), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
