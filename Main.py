@@ -1,13 +1,9 @@
 from flask import Flask, render_template_string, request, send_file
 import yt_dlp
 import os
-import tempfile
-import logging
+from io import BytesIO
 
 app = Flask(__name__)
-
-# Set up logging
-logging.basicConfig(level=logging.DEBUG)
 
 @app.route('/')
 def index():
@@ -102,30 +98,20 @@ def download():
         return 'URL is required', 400
 
     try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_file:
-            output_file = temp_file.name
-
-        logging.debug(f'Temporary file created at: {output_file}')
-        
         ydl_opts = {
             'format': 'bestaudio/best',
-            'outtmpl': output_file,
-            'quiet': False,  # Set to False to get detailed output
+            'outtmpl': '%(id)s.%(ext)s',
+            'quiet': True,
         }
-
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(url, download=False)
+            audio_url = info_dict['formats'][0]['url']
+            file = BytesIO()
             ydl.download([url])
-
-        if os.path.exists(output_file):
-            logging.debug(f'File downloaded successfully: {output_file}')
-            return send_file(output_file, as_attachment=True, attachment_filename='downloaded_video.mp4', mimetype='video/mp4')
-        else:
-            logging.error('File not found after download attempt.')
-            return 'File not found', 404
-
+            file.name = 'downloaded_video.mp4'
+            return send_file(file, as_attachment=True, attachment_filename='downloaded_video.mp4', mimetype='video/mp4')
     except Exception as e:
-        logging.error(f'Error during download: {str(e)}')
-        return f'Error: {str(e)}', 500
+        return str(e), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
