@@ -1,3 +1,10 @@
+from flask import Flask, request, send_file, render_template_string
+import yt_dlp
+import os
+import uuid
+
+app = Flask(__name__)
+
 @app.route('/')
 def index():
     return render_template_string('''
@@ -78,3 +85,27 @@ def index():
         };
     </script>
     ''')
+
+@app.route('/download', methods=['POST'])
+def download():
+    url = request.form['url']
+    unique_filename = f"downloaded_video_{uuid.uuid4().hex}.mp4"
+
+    ydl_opts = {
+        'outtmpl': unique_filename,
+        'format': 'best'
+    }
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(url, download=True)
+        
+        if os.path.exists(unique_filename):
+            return send_file(unique_filename, as_attachment=True)
+        else:
+            return "File not found on the server.", 404
+    except Exception as e:
+        return f"An error occurred: {e}", 500
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8080)
