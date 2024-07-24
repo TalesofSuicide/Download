@@ -2,8 +2,12 @@ from flask import Flask, render_template_string, request, send_file
 import yt_dlp
 import os
 import tempfile
+import logging
 
 app = Flask(__name__)
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)
 
 @app.route('/')
 def index():
@@ -75,7 +79,7 @@ def index():
                     document.getElementById('progress-container').style.display = 'none';
                     alert('Download complete!');
                 } else {
-                    alert('Error downloading file');
+                    alert('Error downloading file: ' + xhr.statusText);
                 }
             };
             xhr.upload.onprogress = function(event) {
@@ -101,21 +105,26 @@ def download():
         with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_file:
             output_file = temp_file.name
 
+        logging.debug(f'Temporary file created at: {output_file}')
+        
         ydl_opts = {
             'format': 'bestaudio/best',
             'outtmpl': output_file,
-            'quiet': True,
+            'quiet': False,  # Set to False to get detailed output
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
 
         if os.path.exists(output_file):
+            logging.debug(f'File downloaded successfully: {output_file}')
             return send_file(output_file, as_attachment=True, attachment_filename='downloaded_video.mp4', mimetype='video/mp4')
         else:
+            logging.error('File not found after download attempt.')
             return 'File not found', 404
 
     except Exception as e:
+        logging.error(f'Error during download: {str(e)}')
         return f'Error: {str(e)}', 500
 
 if __name__ == '__main__':
