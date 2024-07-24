@@ -1,7 +1,6 @@
 from flask import Flask, render_template_string, request, send_file, jsonify
 import yt_dlp
 import os
-from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
@@ -75,12 +74,10 @@ def index():
                     var link = document.createElement('a');
                     link.href = downloadUrl;
                     link.download = 'downloaded_video.mp4';
-                    document.body.appendChild(link);
                     link.click();
-                    document.body.removeChild(link);
                     document.getElementById('progress-container').style.display = 'none';
                 } else {
-                    alert('Error downloading file: ' + xhr.statusText);
+                    alert('Error downloading file: ' + xhr.response.error);
                 }
             };
             xhr.upload.onprogress = function(event) {
@@ -101,21 +98,28 @@ def download():
     url = request.form['url']
     file_path = '/tmp/downloaded_video.mp4'
 
-    # Download the video
-    ydl_opts = {
-        'format': 'bestvideo+bestaudio/best',
-        'outtmpl': file_path,
-        'progress_hooks': [hook],
-    }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url])
-
-    # Serve the file
-    return jsonify({'url': '/serve_file'})
+    try:
+        ydl_opts = {
+            'format': 'bestvideo+bestaudio/best',
+            'outtmpl': file_path,
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+        
+        # Make sure the file exists before sending
+        if os.path.exists(file_path):
+            return jsonify({'url': '/serve_file'})
+        else:
+            return jsonify({'error': 'File not found'}), 404
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/serve_file')
 def serve_file():
     file_path = '/tmp/downloaded_video.mp4'
+    if not os.path.exists(file_path):
+        return 'File not found', 404
     return send_file(file_path, as_attachment=True, attachment_filename='downloaded_video.mp4', mimetype='video/mp4')
 
 if __name__ == '__main__':
