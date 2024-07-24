@@ -114,18 +114,26 @@ def download():
             'format': 'bestvideo+bestaudio/best',
             'outtmpl': file_path,
             'progress_hooks': [hook],
+            'noplaylist': True,  # Avoid downloading playlists
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
 
     def hook(d):
         if d['status'] == 'finished':
-            with open(file_path, 'rb') as f:
-                send_file(f, as_attachment=True, attachment_filename='Kurumi\'sVideo.mp4')
-
+            print("Download finished, sending file.")
+    
+    # Create a separate thread for the download
     thread = Thread(target=download_video)
     thread.start()
-    return 'Downloading video...'
+    
+    # Wait for the download to complete
+    thread.join()
+
+    if os.path.exists(file_path):
+        return send_file(file_path, as_attachment=True, attachment_filename="Kurumi'sVideo.mp4")
+    else:
+        return 'Error: File not found.', 404
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
