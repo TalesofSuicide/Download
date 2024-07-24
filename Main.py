@@ -1,7 +1,6 @@
 from flask import Flask, render_template_string, request, send_file, jsonify
 import yt_dlp
 import os
-from threading import Thread
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -102,29 +101,22 @@ def download():
     url = request.form['url']
     file_path = '/tmp/downloaded_video.mp4'
 
-    def download_video():
-        ydl_opts = {
-            'format': 'bestvideo+bestaudio/best',
-            'outtmpl': file_path,
-            'progress_hooks': [hook],
-        }
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
+    # Download the video
+    ydl_opts = {
+        'format': 'bestvideo+bestaudio/best',
+        'outtmpl': file_path,
+        'progress_hooks': [hook],
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
 
-    def hook(d):
-        if d['status'] == 'finished':
-            print("Download finished")
-            # Here, you would save the file or prepare it for sending.
-            # Use a shared variable or some other method to let the main thread know the file is ready.
+    # Serve the file
+    return jsonify({'url': '/serve_file'})
 
-    thread = Thread(target=download_video)
-    thread.start()
-    # Use a response with a placeholder URL that will be replaced once the download is complete
-    return jsonify({'url': '/complete'})
-
-@app.route('/complete', methods=['GET'])
-def complete():
-    return send_file('/tmp/downloaded_video.mp4', as_attachment=True, attachment_filename='downloaded_video.mp4', mimetype='video/mp4')
+@app.route('/serve_file')
+def serve_file():
+    file_path = '/tmp/downloaded_video.mp4'
+    return send_file(file_path, as_attachment=True, attachment_filename='downloaded_video.mp4', mimetype='video/mp4')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
