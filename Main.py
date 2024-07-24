@@ -89,6 +89,8 @@ def index():
                     link.download = 'Kurumi\'sVideo.mp4';
                     link.click();
                     document.getElementById('progress-container').style.display = 'none';
+                } else {
+                    document.getElementById('status-message').textContent = 'Failed to download video. Please check the URL.';
                 }
             };
             xhr.upload.onprogress = function(event) {
@@ -116,8 +118,11 @@ def download():
             'progress_hooks': [hook],
             'noplaylist': True,  # Avoid downloading playlists
         }
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([url])
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([url])
+        except Exception as e:
+            print(f"Error during download: {e}")
 
     def hook(d):
         if d['status'] == 'finished':
