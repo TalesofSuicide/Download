@@ -1,7 +1,7 @@
-from flask import Flask, request, send_file, render_template_string
+from flask import Flask, render_template_string, request, send_file
 import yt_dlp
 import os
-import uuid
+from threading import Thread
 
 app = Flask(__name__)
 
@@ -42,11 +42,15 @@ def index():
         #progress-bar {
             width: 0;
             height: 30px;
-            background-color: #007BFF;
+            background-color: #8B0000; /* Dark Red Color */
             text-align: center;
             line-height: 30px;
             color: white;
             border-radius: 5px;
+        }
+        #status-message {
+            margin-top: 10px;
+            font-weight: bold;
         }
     </style>
     <form id="download-form">
@@ -55,6 +59,7 @@ def index():
     </form>
     <div id="progress-container" style="display:none;">
         <div id="progress-bar">0%</div>
+        <div id="status-message"></div>
     </div>
     <script>
         document.getElementById('download-form').onsubmit = function(event) {
@@ -89,23 +94,25 @@ def index():
 @app.route('/download', methods=['POST'])
 def download():
     url = request.form['url']
-    unique_filename = f"downloaded_video_{uuid.uuid4().hex}.mp4"
+    file_path = '/tmp/downloaded_video.mp4'
 
-    ydl_opts = {
-        'outtmpl': unique_filename,
-        'format': 'best'
-    }
-
-    try:
+    def download_video():
+        ydl_opts = {
+            'format': 'bestvideo+bestaudio/best',
+            'outtmpl': file_path,
+            'progress_hooks': [hook],
+        }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info_dict = ydl.extract_info(url, download=True)
-        
-        if os.path.exists(unique_filename):
-            return send_file(unique_filename, as_attachment=True)
-        else:
-            return "File not found on the server.", 404
-    except Exception as e:
-        return f"An error occurred: {e}", 500
+            ydl.download([url])
+
+    def hook(d):
+        if d['status'] == 'finished':
+            with open(file_path, 'rb') as f:
+                send_file(f, as_attachment=True)
+
+    thread = Thread(target=download_video)
+    thread.start()
+    return 'Downloading video...'
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
