@@ -8,9 +8,6 @@ app = Flask(__name__)
 @app.route('/')
 def index():
     return render_template_string('''
-    <head>
-        <link rel="icon" href="https://media.discordapp.net/attachments/1092931340095213599/1265653526709669989/Kurumi.png?ex=66a24b33&is=66a0f9b3&hm=f219cc590615149bc12a89a5c1365d15cd8d427ab03f0517c6cfef69f6bd7feb&=&format=webp&quality=lossless" type="image/png">
-    </head>
     <style>
         body {
             background-image: url('https://imgs.search.brave.com/BHyziE80tXpw8mYUQKtJ0NEL_hLWWkg5DKKFk6-tUvo/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pLnBp/bmltZy5jb20vb3Jp/Z2luYWxzL2YzLzQ4/LzNmL2YzNDgzZjkw/ZDdlMDIxODEwMDFk/OGE2MTY2ZmI5Nzk2/LmpwZw');
@@ -93,7 +90,7 @@ def index():
                 if (xhr.status === 200) {
                     var link = document.createElement('a');
                     link.href = URL.createObjectURL(xhr.response);
-                    link.download = 'Kurumi\'sVideo.mp4';
+                    link.download = 'Kurumi\'sVideo.mp4'; // Correct filename
                     link.click();
                     document.getElementById('progress-container').style.display = 'none';
                 }
@@ -114,12 +111,12 @@ def index():
 @app.route('/download', methods=['POST'])
 def download():
     url = request.form['url']
-    file_path = '/tmp/downloaded_video.mp4'
+    file_path = '/tmp/Kurumi\'sVideo.mp4'
 
     def download_video():
         ydl_opts = {
             'format': 'bestvideo+bestaudio/best',
-            'outtmpl': '/tmp/downloaded_video.%(ext)s',
+            'outtmpl': '/tmp/Kurumi\'sVideo.%(ext)s',
             'postprocessors': [{
                 'key': 'FFmpegVideoConvertor',
                 'preferedformat': 'mp4',
@@ -131,9 +128,8 @@ def download():
 
     def hook(d):
         if d['status'] == 'finished':
-            # Serve the file after download is complete
-            with open(file_path, 'rb') as f:
-                return send_file(f, as_attachment=True, attachment_filename='Kurumi\'sVideo.mp4')
+            # Once download is finished, serve the file
+            return send_file(file_path, as_attachment=True)
 
     thread = Thread(target=download_video)
     thread.start()
