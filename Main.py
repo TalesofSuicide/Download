@@ -102,8 +102,14 @@ def download():
         ydl_opts = {
             'format': 'bestvideo+bestaudio/best',
             'outtmpl': temp_path,
-            'merge_output_format': 'mp4',  # Ensure output format is MP4
+            'noplaylist': True,  # Download only the single video
+            'merge_output_format': 'mp4',  # Directly specify MP4 if possible
+            'progress_hooks': [hook],
         }
+        def hook(d):
+            if d['status'] == 'finished':
+                print(f"Done downloading {d['filename']}")
+
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
         
