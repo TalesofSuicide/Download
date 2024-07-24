@@ -1,9 +1,3 @@
-from flask import Flask, request, send_file, render_template_string
-import yt_dlp
-import os
-
-app = Flask(__name__)
-
 @app.route('/')
 def index():
     return render_template_string('''
@@ -35,33 +29,52 @@ def index():
             border-radius: 5px;
             cursor: pointer;
         }
+        #progress-container {
+            margin-top: 20px;
+        }
+        #progress-bar {
+            width: 0;
+            height: 30px;
+            background-color: #007BFF;
+            text-align: center;
+            line-height: 30px;
+            color: white;
+            border-radius: 5px;
+        }
     </style>
-    <form action="/download" method="post">
-        <input type="text" name="url" placeholder="Enter YouTube URL">
+    <form id="download-form">
+        <input type="text" id="url" name="url" placeholder="Enter YouTube URL" required>
         <button type="submit">Download</button>
     </form>
+    <div id="progress-container" style="display:none;">
+        <div id="progress-bar">0%</div>
+    </div>
+    <script>
+        document.getElementById('download-form').onsubmit = function(event) {
+            event.preventDefault();
+            var url = document.getElementById('url').value;
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/download', true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.responseType = 'blob';
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    var link = document.createElement('a');
+                    link.href = URL.createObjectURL(xhr.response);
+                    link.download = 'downloaded_video.mp4';
+                    link.click();
+                    document.getElementById('progress-container').style.display = 'none';
+                }
+            };
+            xhr.upload.onprogress = function(event) {
+                if (event.lengthComputable) {
+                    var percentComplete = (event.loaded / event.total) * 100;
+                    document.getElementById('progress-bar').style.width = percentComplete + '%';
+                    document.getElementById('progress-bar').textContent = Math.round(percentComplete) + '%';
+                    document.getElementById('progress-container').style.display = 'block';
+                }
+            };
+            xhr.send('url=' + encodeURIComponent(url));
+        };
+    </script>
     ''')
-
-@app.route('/download', methods=['POST'])
-def download():
-    url = request.form['url']
-    print(f"Received URL: {url}")  # Debugging print
-    ydl_opts = {
-        'outtmpl': 'downloaded_video.%(ext)s',
-        'format': 'best'
-    }
-
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info_dict = ydl.extract_info(url, download=True)
-            print(f"Video info: {info_dict}")  # Debugging print
-            video_file = ydl.prepare_filename(info_dict)
-            print(f"Video file path: {video_file}")  # Debugging print
-        return send_file(video_file, as_attachment=True)
-    except Exception as e:
-        print(f"Error during download: {e}")  # Debugging print
-        return f"An error occurred: {e}"
-
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
